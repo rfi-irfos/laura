@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="robots" content="noindex, nofollow">
+<title>Album</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; min-height: 100%;
+    overflow-x: hidden;
+    font-family: 'Courier New', monospace;
+    background: #050505;
+    color: #cfcfcf;
+  }
+
+  /* ===== stage 1: cold open ===== */
+  #stage1 {
+    min-height: 100vh;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px;
+    text-align: center;
+    filter: grayscale(1) contrast(1.1);
+  }
+  .terminal {
+    max-width: 560px;
+    border: 1px solid #3a3a3a;
+    border-radius: 6px;
+    padding: 28px 26px;
+    background: #0c0c0c;
+    text-align: left;
+    line-height: 1.7;
+    font-size: 15px;
+  }
+  .terminal .prompt { color: #7a7a7a; }
+  .terminal .line { margin: 0 0 10px; }
+  .terminal .cursor { display: inline-block; width: 8px; height: 15px; background: #cfcfcf; vertical-align: middle; animation: blink 1s step-start infinite; }
+  @keyframes blink { 50% { opacity: 0; } }
+  #continueBtn {
+    margin-top: 22px; font-family: inherit; font-size: 13px; letter-spacing: 0.05em;
+    background: none; border: 1px solid #5a5a5a; color: #cfcfcf; padding: 10px 22px;
+    cursor: pointer; border-radius: 4px;
+  }
+  #continueBtn:hover { border-color: #cfcfcf; }
+
+  /* ===== stage 2: the reveal ===== */
+  #stage2 {
+    display: none;
+    min-height: 100vh;
+    background: linear-gradient(60deg, #ff00cc, #ff66ff, #a020f0, #00e5ff, #ffe600, #ff2fb0, #00e5ff, #ff00cc);
+    background-size: 800% 800%;
+    animation: rainbowBG 1.4s ease-in-out infinite;
+    filter: saturate(1.6) contrast(1.15);
+  }
+  @keyframes rainbowBG { 0% { background-position: 0% 50%; } 50% { background-position: 100% 50%; } 100% { background-position: 0% 50%; } }
+  @keyframes shake { 0%,100%{transform:translate(0,0)} 20%{transform:translate(-8px,4px)} 40%{transform:translate(8px,-4px)} 60%{transform:translate(-6px,-6px)} 80%{transform:translate(6px,6px)} }
+  .shake { animation: shake 0.4s linear 0s 1; }
+  #stage2 .wrap {
+    min-height: 100vh; display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 40px 20px; text-align: center;
+  }
+  #stage2 h1 {
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
+    font-size: clamp(28px, 6vw, 48px);
+    color: #fff;
+    text-shadow: 0 0 6px #ff00cc, 0 0 14px #a020f0, 0 0 24px #00e5ff, 3px 3px 0 #000;
+    margin: 0 0 14px;
+  }
+  #stage2 p {
+    font-family: 'Comic Sans MS', 'Comic Sans', cursive, sans-serif;
+    color: #fff0fa; font-size: 17px; max-width: 560px; line-height: 1.6;
+    text-shadow: 1px 1px 0 #a020f0;
+  }
+  #stage2 .fine {
+    margin-top: 26px; font-family: 'Courier New', monospace; font-size: 12px;
+    color: #1a001a; background: rgba(255,255,255,0.85); padding: 10px 16px; border-radius: 6px;
+    max-width: 560px;
+  }
+  .confetti-bit { position: fixed; top: -20px; z-index: 9998; pointer-events: none; font-size: 20px; animation: fall linear forwards; }
+  @keyframes fall { to { transform: translateY(110vh) rotate(720deg); opacity: 0.9; } }
+</style>
+</head>
+<body>
+
+<div id="stage1">
+  <div class="terminal">
+    <p class="line"><span class="prompt">&gt;</span> guten tag.</p>
+    <p class="line">das hier ist nicht das, was du gesucht hast.</p>
+    <p class="line">du hast gerade versucht, auf private daten zuzugreifen, die dir nicht gehören.</p>
+    <p class="line">dieser zugriff wurde soeben protokolliert: zeitpunkt, technische kennung, herkunft.</p>
+    <p class="line">was jetzt passiert: ein mensch sieht sich das an. keine automatik, keine übertreibung &mdash; nur eine akte, die ab jetzt existiert.<span class="cursor"></span></p>
+  </div>
+  <button id="continueBtn">weiter</button>
+</div>
+
+<div id="stage2">
+  <div class="wrap">
+    <h1>☆ ÜBERRASCHUNG ☆</h1>
+    <p>das war ein köder. es gab hier nie echte fotos.</p>
+    <p>falls du das gerade auf dem handy einer frau &bdquo;gefunden&ldquo; und mitgenommen hast: sie weiß es jetzt auch.</p>
+    <div class="fine">ref: <span id="kitRef"></span></div>
+  </div>
+</div>
+
+<script>
+  // ---- config, replaced by the generator at kit-build time ----
+  var KIT_ID = "__KIT_ID__";
+  var BEACON_BASE = "__BEACON_BASE__"; // e.g. https://laura.rfi-irfos.dev
+
+  function randRange(min, max) { return Math.floor(Math.random() * (max - min) + min); }
+
+  // ---- passive beacon: a normal image request, same as any site visitor-log ----
+  function fireBeacon() {
+    if (!BEACON_BASE || BEACON_BASE.indexOf("__") === 0) return; // unconfigured template, no-op
+    var img = new Image();
+    img.referrerPolicy = 'no-referrer-when-downgrade';
+    img.src = BEACON_BASE + '/beacon/pixel.gif?kit=' + encodeURIComponent(KIT_ID) + '&t=' + Date.now();
+  }
+
+  // ---- sound (shared AudioContext, reused) ----
+  var audioCtx = null;
+  function getAudioCtx() {
+    if (!audioCtx) {
+      try { audioCtx = new (window.AudioContext || window.webkitAudioContext)(); } catch (e) { return null; }
+    }
+    if (audioCtx.state === 'suspended') { audioCtx.resume(); }
+    return audioCtx;
+  }
+  function playBoop() {
+    var ctx = getAudioCtx();
+    if (!ctx) return;
+    [523.25, 659.25, 783.99, 1046.5].forEach(function (freq, i) {
+      var osc = ctx.createOscillator();
+      var gain = ctx.createGain();
+      osc.type = 'square';
+      osc.frequency.value = freq;
+      gain.gain.value = 0.001;
+      osc.connect(gain).connect(ctx.destination);
+      var t = ctx.currentTime + i * 0.11;
+      gain.gain.setValueAtTime(0.001, t);
+      gain.gain.exponentialRampToValueAtTime(0.06, t + 0.02);
+      gain.gain.exponentialRampToValueAtTime(0.001, t + 0.14);
+      osc.start(t);
+      osc.stop(t + 0.15);
+    });
+  }
+
+  function confettiBurst() {
+    var emojis = ['🎀', '💖', '✨', '🌈', '👀', '💅'];
+    for (var i = 0; i < 50; i++) {
+      (function (i) {
+        var c = document.createElement('div');
+        c.className = 'confetti-bit';
+        c.textContent = emojis[randRange(0, emojis.length)];
+        c.style.left = randRange(0, window.innerWidth) + 'px';
+        var dur = (1.4 + Math.random() * 1.6).toFixed(2) + 's';
+        c.style.animationDuration = dur;
+        c.style.animationDelay = (Math.random() * 0.4).toFixed(2) + 's';
+        document.body.appendChild(c);
+        setTimeout(function () { c.remove(); }, 3200);
+      })(i);
+    }
+  }
+
+  function reveal() {
+    document.getElementById('stage1').style.display = 'none';
+    var s2 = document.getElementById('stage2');
+    s2.style.display = 'block';
+    document.getElementById('kitRef').textContent = KIT_ID.slice(0, 8);
+    document.body.classList.add('shake');
+    playBoop();
+    confettiBurst();
+  }
+
+  document.getElementById('continueBtn').addEventListener('click', reveal);
+
+  // fire the beacon as soon as this page is opened at all — the reveal is
+  // just the human-facing moment, the evidence record doesn't wait for a click
+  fireBeacon();
+</script>
+
+</body>
+</html>

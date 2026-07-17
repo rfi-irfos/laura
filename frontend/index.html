@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<script>document.documentElement.dataset.theme = localStorage.getItem('laura-theme') || 'dark';</script>
+<meta charset="utf-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1"/>
+<title>LAURA — Köder gegen Proximity-Datendiebstahl</title>
+<meta name="theme-color" content="#0f172a"/>
+<meta name="description" content="Ein selbst erstellter Köder-Ordner schützt private Fotos auf dem eigenen Handy vor unautorisiertem Zugriff — kein Exploit, keine automatische Meldung, volle Transparenz."/>
+<link rel="stylesheet" href="assets/css/base.css"/>
+<link rel="stylesheet" href="assets/css/page.css"/>
+</head>
+<body>
+
+<div class="page-shell">
+
+  <header class="page-header">
+    <span class="page-title">LAURA</span>
+    <span class="tag">digitaler selbstschutz</span>
+  </header>
+
+  <div class="section-label">worum es geht</div>
+  <div class="lead">ein köder-ordner, den ein täter findet statt deiner echten fotos.</div>
+  <div class="desc">
+    proximity-tools (NFC/Bluetooth-basierte geräte, missbrauchte datenübertragung
+    zwischen handys, physischer kurzzugriff) werden zunehmend genutzt, um
+    unbemerkt private fotos von handys zu ziehen &mdash; oft gefolgt von erpressung.
+    LAURA erzeugt dir einen ordner, der wie dein privater fotobereich aussieht.
+    greift jemand ohne deine erlaubnis darauf zu, bekommt er statt echter fotos
+    einen köder &mdash; und du bekommst einen beleg, dass es passiert ist.
+  </div>
+
+  <div class="info-box">
+    <strong>was das tool tut und was nicht:</strong>
+    <ul>
+      <li><span class="yes">✓</span> erzeugt einen download mit köder-dateien, die du selbst auf dein handy legst</li>
+      <li><span class="yes">✓</span> zeichnet auf, wenn der köder später irgendwo geöffnet wird (zeit, technische kennung)</li>
+      <li><span class="yes">✓</span> nur du kannst mit deinem code nachsehen, ob/wann ausgelöst wurde</li>
+      <li><span class="no">✗</span> greift nicht aktiv auf das gerät zu, das den köder öffnet &mdash; kein exploit, kein code, der dort läuft</li>
+      <li><span class="no">✗</span> meldet nichts automatisch an polizei oder dritte &mdash; das entscheidest du, ein mensch sieht sich jeden treffer erst an</li>
+      <li><span class="no">✗</span> braucht keine registrierung, keinen klarnamen, keine app-installation</li>
+    </ul>
+  </div>
+
+  <div class="generator">
+    <div class="field-label">ordner-name (der köder soll wie dein privater bereich aussehen)</div>
+    <div id="presetRow"></div>
+    <input id="customName" type="text" placeholder="eigener name…" />
+    <button id="generateBtn" class="btn">kit erstellen &amp; herunterladen</button>
+  </div>
+
+  <div id="result" class="info-box" hidden>
+    <div class="row"><span class="k">dein code (merken oder screenshot &mdash; wird nirgends gespeichert, nur hier gezeigt)</span><code id="resultCode"></code></div>
+    <div class="row"><span class="k">nachschauen ob ausgelöst</span><a id="resultLink" target="_blank" rel="noopener"></a></div>
+    <div class="row"><span class="k">ordner im zip</span><code id="resultFolder"></code></div>
+    <ol>
+      <li>zip entpacken</li>
+      <li>den entpackten ordner in deine fotos/downloads verschieben</li>
+      <li>fertig &mdash; nichts weiter zu installieren</li>
+    </ol>
+  </div>
+
+  <footer class="page-footer">
+    <a href="https://github.com/rfi-irfos/laura" target="_blank" rel="noopener">quelltext auf GitHub</a>
+    &middot; alles läuft im browser, nichts wird beim erstellen hochgeladen
+  </footer>
+
+</div>
+
+<script src="js/minizip.js"></script>
+<script>window.LAURA_BEACON_BASE = window.LAURA_BEACON_BASE || 'https://laura-beacon.fly.dev';</script>
+<script src="js/generator.js"></script>
+</body>
+</html>
