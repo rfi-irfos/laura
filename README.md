@@ -47,7 +47,7 @@ beim öffnen ganz normal nach hause funken.
 
 ## Architektur
 
-- `frontend/` &mdash; statische seite (GitHub Pages), generiert das
+- `docs/` &mdash; statische seite (GitHub Pages), generiert das
   download-paket vollständig im browser, kein server-roundtrip beim
   erstellen selbst
 - `backend/` &mdash; kleiner Rust/Axum-service auf Fly.io, nimmt die
@@ -62,6 +62,6 @@ cp .env.example .env
 cargo run
 
 # frontend (irgendein statischer server, z.b.)
-cd frontend
+cd docs
 python3 -m http.server 8080
 ```
