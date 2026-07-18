@@ -123,6 +123,18 @@
 #result code { font-family: var(--font-mono); background: var(--muted); padding: 2px 6px; border-radius: 3px; font-size: 0.8rem; word-break: break-all; }
 #result ol { margin: 12px 0 0; padding-left: 20px; }
 
+.ios-hint {
+  margin-top: 12px;
+  padding: 10px 12px;
+  border: 1px dashed var(--amber, #f59e0b);
+  border-radius: 6px;
+  color: var(--amber, #f59e0b);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  line-height: 1.5;
+}
+.ios-hint[hidden] { display: none; }
+
 .page-footer {
   font-family: var(--font-mono);
   font-size: 0.7rem;

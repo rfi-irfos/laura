@@ -86,14 +86,65 @@
     return { kitId: kitId, folder: folder, zipBlob: zipBlob };
   }
 
+  // Cross-platform download. iOS Safari silently ignores `download` on
+  // blob: URLs and does not save on a synthetic click, so we feature-detect
+  // and fall back to opening the blob in a new tab (where the user taps the
+  // share/save sheet). On every other OS the anchor-download path is used.
   function downloadBlob(blob, filename) {
     var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url; a.download = filename;
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+
+    var supportsAnchorDownload = (function () {
+      var a = document.createElement('a');
+      return typeof a.download !== 'undefined' &&
+        typeof URL.createObjectURL === 'function';
+    })();
+
+    if (supportsAnchorDownload && !isIOS()) {
+      var a = document.createElement('a');
+      a.href = url; a.download = filename;
+      // Some mobile Chromiums ignore .click(); dispatch a real MouseEvent.
+      document.body.appendChild(a);
+      if (typeof a.click === 'function') a.click();
+      else {
+        var evt = document.createEvent('MouseEvents');
+        evt.initMouseEvent('click', true, true, window, 0, 0, 0, 0, 0, false, false, false, false, 0, null);
+        a.dispatchEvent(evt);
+      }
+      a.remove();
+      setTimeout(function () { URL.revokeObjectURL(url); }, 4000);
+      return;
+    }
+
+    // iOS fallback: open the blob so the user can save/share it manually.
+    var win = window.open(url, '_blank');
+    if (!win) {
+      // Popup blocked — point the current tab at it instead.
+      window.location.href = url;
+    }
+    showIosSaveHint();
+    // Keep the object URL alive; iOS needs it present to save.
+  }
+
+  function isIOS() {
+    var ua = (navigator.userAgent || '').toLowerCase();
+    return /ipad|iphone|ipod/.test(ua) ||
+      // iPadOS 13+ reports as Mac but exposes touch points.
+      (/macintosh/.test(ua) && navigator.maxTouchPoints > 1);
+  }
+
+  function showIosSaveHint() {
+    var box = document.getElementById('result');
+    if (!box) return;
+    var hint = document.getElementById('iosHint');
+    if (!hint) {
+      hint = document.createElement('div');
+      hint.id = 'iosHint';
+      hint.className = 'ios-hint';
+      hint.innerHTML = 'iOS erkannt: tippe oben auf <strong>↗ teilen / sichern</strong> ' +
+        'und wähle <strong>"Datei speichern"</strong>, um das zip zu speichern.';
+      box.appendChild(hint);
+    }
+    hint.hidden = false;
   }
 
   function renderResult(kitId, folder) {
@@ -105,6 +156,8 @@
     link.textContent = lookupUrl;
     if (BEACON_BASE) link.href = lookupUrl;
     document.getElementById('resultFolder').textContent = folder;
+    var hint = document.getElementById('iosHint');
+    if (hint) hint.hidden = true;
     box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
