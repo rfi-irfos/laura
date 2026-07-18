@@ -62,9 +62,41 @@
     return res.text();
   }
 
+  // Produce a SINGLE self-contained .html for iOS: the decoy images are
+  // embedded inline as data: URIs (rendered as a small photo grid so the
+  // bait still looks like a private photo folder) and the beacon/reveal
+  // logic stays. A single .html is the only artifact an iPhone will reliably
+  // save via the Share sheet ("Save to Files") and open with no unzip step.
+  async function buildSingleHtml(kitId, folder) {
+    var templateText = await fetchTemplate();
+    var imageCount = 5;
+    var photoGrid = '';
+    for (var i = 0; i < imageCount; i++) {
+      var buf = await drawDecoyImage(i + kitId.charCodeAt(i % kitId.length));
+      var b64 = btoa(String.fromCharCode.apply(null, buf));
+      photoGrid += '<img class="decoy-thumb" src="data:image/jpeg;base64,' + b64 + '" alt="">\n';
+    }
+    var html = templateText
+      .replace('__KIT_ID__', kitId)
+      .replace('__BEACON_BASE__', BEACON_BASE)
+      .replace('</body>',
+        '<div class="decoy-grid">\n' + photoGrid + '</div>\n' +
+        '<style>.decoy-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:6px;padding:0 0 24px;max-width:520px;margin:18px auto;}' +
+        '.decoy-thumb{width:100%;aspect-ratio:3/4;object-fit:cover;border-radius:8px;background:#222}</style>\n' +
+        '</body>');
+
+    var blob = new Blob([html], { type: 'text/html' });
+    return { kitId: kitId, folder: folder, blob: blob, filename: folder + '.html', singleFile: true };
+  }
+
   async function buildKit() {
     var kitId = uuid();
     var folder = folderName().replace(/[\\/:*?"<>|]/g, '').trim() || 'Privat';
+
+    // iOS cannot save a zip / folder from the browser. Ship one .html file.
+    if (isIOS()) {
+      return buildSingleHtml(kitId, folder);
+    }
 
     var templateText = await fetchTemplate();
     var albumHtml = templateText
@@ -83,7 +115,7 @@
     }
 
     var zipBlob = MiniZip.buildZip(files);
-    return { kitId: kitId, folder: folder, zipBlob: zipBlob };
+    return { kitId: kitId, folder: folder, blob: zipBlob, filename: 'laura-kit.zip', singleFile: false };
   }
 
   // Cross-platform download. iOS Safari silently ignores `download` on
@@ -124,7 +156,7 @@
   // unavailable or the user cancels the sheet.
   function iosSave(blob, filename) {
     if (typeof navigator.share === 'function' && typeof File === 'function') {
-      var file = new File([blob], filename, { type: blob.type || 'application/zip' });
+      var file = new File([blob], filename, { type: blob.type || (filename.endsWith('.zip') ? 'application/zip' : 'text/html') });
       var canShare = !navigator.canShare || navigator.canShare({ files: [file] });
       if (canShare) {
         navigator.share({ files: [file], title: filename })
@@ -161,14 +193,15 @@
       hint = document.createElement('div');
       hint.id = 'iosHint';
       hint.className = 'ios-hint';
-      hint.innerHTML = 'iOS erkannt: tippe oben auf <strong>↗ teilen / sichern</strong> ' +
-        'und wähle <strong>"Datei speichern"</strong>, um das zip zu speichern.';
+      hint.innerHTML = 'iOS erkannt: tippe oben auf <strong>↗ teilen</strong> und wähle ' +
+        '<strong>"Datei speichern"</strong>, um die eine .html-datei zu sichern. ' +
+        'dann in <em>Dateien</em> öffnen — kein entpacken nötig.';
       box.appendChild(hint);
     }
     hint.hidden = false;
   }
 
-  function renderResult(kitId, folder) {
+  function renderResult(kitId, folder, singleFile) {
     var box = document.getElementById('result');
     box.hidden = false;
     document.getElementById('resultCode').textContent = kitId;
@@ -178,7 +211,8 @@
     if (BEACON_BASE) link.href = lookupUrl;
     document.getElementById('resultFolder').textContent = folder;
     var hint = document.getElementById('iosHint');
-    if (hint) hint.hidden = true;
+    if (hint) hint.hidden = !singleFile;
+    if (singleFile) showIosSaveHint();
     box.scrollIntoView({ behavior: 'smooth', block: 'center' });
   }
 
@@ -215,8 +249,8 @@
       btn.textContent = 'erstelle kit …';
       try {
         var kit = await buildKit();
-        downloadBlob(kit.zipBlob, 'laura-kit.zip');
-        renderResult(kit.kitId, kit.folder);
+        downloadBlob(kit.blob, kit.filename);
+        renderResult(kit.kitId, kit.folder, kit.singleFile);
       } catch (err) {
         console.error(err);
         alert('kit-erstellung fehlgeschlagen: ' + err.message);
