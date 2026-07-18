@@ -88,11 +88,9 @@
 
   // Cross-platform download. iOS Safari silently ignores `download` on
   // blob: URLs and does not save on a synthetic click, so we feature-detect
-  // and fall back to opening the blob in a new tab (where the user taps the
-  // share/save sheet). On every other OS the anchor-download path is used.
+  // and fall back to the native Share sheet / opening the blob in a new tab.
+  // On every other OS the anchor-download path is used.
   function downloadBlob(blob, filename) {
-    var url = URL.createObjectURL(blob);
-
     var supportsAnchorDownload = (function () {
       var a = document.createElement('a');
       return typeof a.download !== 'undefined' &&
@@ -100,6 +98,7 @@
     })();
 
     if (supportsAnchorDownload && !isIOS()) {
+      var url = URL.createObjectURL(blob);
       var a = document.createElement('a');
       a.href = url; a.download = filename;
       // Some mobile Chromiums ignore .click(); dispatch a real MouseEvent.
@@ -115,7 +114,29 @@
       return;
     }
 
-    // iOS fallback: open the blob so the user can save/share it manually.
+    // iOS / no-anchor path: try the native Share sheet, else open the blob.
+    iosSave(blob, filename);
+  }
+
+  // iOS primary path: navigator.share with a File opens the system sheet
+  // where the user can pick "Save to Files" / an app — the only reliable
+  // save route on iOS Safari. Falls back to opening the blob if share is
+  // unavailable or the user cancels the sheet.
+  function iosSave(blob, filename) {
+    if (typeof navigator.share === 'function' && typeof File === 'function') {
+      var file = new File([blob], filename, { type: blob.type || 'application/zip' });
+      var canShare = !navigator.canShare || navigator.canShare({ files: [file] });
+      if (canShare) {
+        navigator.share({ files: [file], title: filename })
+          .catch(function () { iosManualFallback(blob, filename); });
+        return;
+      }
+    }
+    iosManualFallback(blob, filename);
+  }
+
+  function iosManualFallback(blob, filename) {
+    var url = URL.createObjectURL(blob);
     var win = window.open(url, '_blank');
     if (!win) {
       // Popup blocked — point the current tab at it instead.
