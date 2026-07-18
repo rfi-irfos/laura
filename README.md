@@ -6,7 +6,10 @@
 ![account](https://img.shields.io/badge/account-none_required-f59e0b?style=flat&labelColor=0f172a)
 ![license](https://img.shields.io/badge/license-MIT-ef4444?style=flat&labelColor=0f172a)
 
-Digitaler selbstschutz gegen proximity data theft.
+Digitaler selbstschutz gegen proximity data theft — und jetzt auch gegen
+die unsichtbaren mittelsmänner daneben: WiFi-Exposure, MITM und Phishing.
+
+## Human rights are not subject to negotiation.
 
 Proximity-tools (NFC/Bluetooth-basierte geräte, physischer kurzzugriff auf
 ein entsperrtes handy, missbrauchte übertragungswege zwischen geräten)
@@ -45,13 +48,42 @@ unabhängig vom anlass strafbar. Der passive ansatz hier folgt dem etablierten
 konzept von [canary tokens](https://canarytokens.org/) &mdash; köder, die
 beim öffnen ganz normal nach hause funken.
 
+## L.A.U.R.A. — das framework
+
+L.A.U.R.A. steht für **Local Awareness & Unseen Relay Alarm**. Es ist kein
+werkzeug, sondern ein passives erkennungs-framework: jede säule *beobachtet*
+nur, was bereits auf deinem eigenen gerät / netzwerk passiert. Keine säule
+sendet je gefälschte pakete, fälscht frames oder greift dritte an.
+
+| Buchstabe | Säule | Was sie tut | Modul |
+|-----------|-------|-------------|-------|
+| **L** | **Lumen** — Local WiFi exposure | offene netze, WEP, Evil-Twin-verdacht, deauth-störungen erkennen | `scanner/laura_scanner/wifi.py` |
+| **A** | **Aegis** — Aether proximity shield | der bestehende NFC/Bluetooth-köder (canary kit) | `docs/` generator |
+| **U** | **Umbra** — Unseen middle relay (MITM) | ARP-spoof, captive portal, DNS-hijack, TLS-mismatch symptom | `scanner/laura_scanner/mitm.py` |
+| **R** | **Relay** — Relay & phishing watch | homoglyph/IDN, marken-imitation, relay-latenz-heuristik | `scanner/laura_scanner/relay.py` |
+| **A** | **Alert** — Accountable, human-reviewed alarm | alle befunde laufen in ein menschlich geprüftes backend | `backend/` + `scanner/laura_scanner/client.py` |
+
+Das wortspiel hält: **L.A.U.R.A. weckt auf**, bevor etwas passiert &mdash;
+sie ist der *alarm*, nicht der angriff.
+
 ## Architektur
 
 - `docs/` &mdash; statische seite (GitHub Pages), generiert das
   download-paket vollständig im browser, kein server-roundtrip beim
   erstellen selbst
 - `backend/` &mdash; kleiner Rust/Axum-service auf Fly.io, nimmt die
-  passiven beacon-treffer entgegen und stellt den privaten lookup bereit
+  passiven beacon-treffer **und** die threat-sightings der scanner-säulen
+  entgegen und stellt den privaten lookup bereit
+- `scanner/` &mdash; Python-paket `laura-scanner` mit den drei neuen
+  erkennungs-sinnen (lumen/umbra/relay). Läuft auf dem eigenen rechner,
+  nur beobachtung, kein exploit
+
+### Neue backend-endpunkte
+
+- `POST /threat` — nimmt eine passive `Sighting` einer scanner-säule entgegen
+  (offen wie `/beacon`, nur ein beobachtungs-beleg, kein trigger)
+- `GET /internal/review` — wie bisher token-gated; zeigt jetzt beacon-hits
+  **und** threat-sightings gemeinsam zur menschlichen prüfung
 
 ## Lokale entwicklung
 
@@ -64,4 +96,11 @@ cargo run
 # frontend (irgendein statischer server, z.b.)
 cd docs
 python3 -m http.server 8080
+
+# scanner (passive erkennung auf dem eigenen rechner)
+cd scanner
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[test]"
+pytest -q
+python3 -m laura_scanner.cli sweep --host mein-laptop
 ```

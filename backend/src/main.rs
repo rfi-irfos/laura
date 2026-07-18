@@ -1,8 +1,9 @@
 mod beacon;
 mod lookup;
 mod review;
+mod threat;
 
-use axum::{routing::get, Router};
+use axum::{routing::{get, post}, Router};
 use sqlx::SqlitePool;
 use tower_http::cors::CorsLayer;
 
@@ -40,6 +41,29 @@ async fn main() {
         .await
         .ok();
 
+    // Passive threat sightings from host-side detection modules (lumen/umbra/relay).
+    sqlx::query(
+        "CREATE TABLE IF NOT EXISTS threat_sightings (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            sense TEXT NOT NULL DEFAULT 'unknown',
+            kind TEXT NOT NULL DEFAULT '',
+            severity TEXT NOT NULL DEFAULT 'low',
+            summary TEXT NOT NULL DEFAULT '',
+            evidence_json TEXT NOT NULL DEFAULT '{}',
+            host TEXT NOT NULL DEFAULT '',
+            created_at DATETIME NOT NULL DEFAULT (datetime('now'))
+        )",
+    )
+    .execute(&db)
+    .await
+    .expect("create threat_sightings");
+    sqlx::query(
+        "CREATE INDEX IF NOT EXISTS idx_ts_sense ON threat_sightings(sense, created_at)",
+    )
+    .execute(&db)
+    .await
+    .ok();
+
     let review_token = std::env::var("REVIEW_TOKEN").unwrap_or_else(|_| {
         tracing::warn!("REVIEW_TOKEN not set — /internal/review is unreachable until it is");
         "".into()
@@ -51,6 +75,7 @@ async fn main() {
         .route("/", get(|| async { "LAURA backend — see /beacon, /lookup/:code" }))
         .route("/beacon/pixel.gif", get(beacon::pixel))
         .route("/lookup/:code", get(lookup::show))
+        .route("/threat", post(threat::report))
         .route("/internal/review", get(review::show))
         .layer(CorsLayer::permissive())
         .with_state(state);

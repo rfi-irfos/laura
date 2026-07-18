@@ -1,0 +1,23 @@
+[project]
+name = "laura-scanner"
+version = "0.1.0"
+description = "L.A.U.R.A. host-side passive threat detection (WiFi exposure, MITM, phishing/relay). Detection only — no exploits."
+readme = "README.md"
+requires-python = ">=3.9"
+dependencies = [
+    "requests>=2.28",
+    "cryptography>=41.0",
+]
+
+[project.optional-dependencies]
+test = ["pytest>=7.0"]
+
+[project.scripts]
+laura-scan = "laura_scanner.cli:main"
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["laura_scanner*"]
